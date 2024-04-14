@@ -4,38 +4,12 @@ import * as normalfs from "fs";
 import fs from "fs/promises"
 
 import path from "path";
-import { existsSync } from 'fs';
-
-
-import { writeFile, mkdir } from 'fs/promises';
 
 
 const sp = "SP_EmployeeDetail";
 
 
 
-
-//  const pool = await dbConnect();
-
-export const GetDetails = async (req, res) => {
-    // let {Mobile}=req.body;
-    console.log(req.body)
-    try {
-        const { recordset } = await db.request()
-            .input('Flag', 'Get_Info')
-            .input('Mobile', req.body.Mobile)
-            .execute(sp)
-        console.log('Hello')
-
-        //console.log(req.body);
-        console.log(recordset);
-        return res.status(200).json({ flag: '1', flag_msg: 'getting', ans: recordset })
-
-    } catch (error) {
-        console.log('err is: ', error);
-        return res.status(200).json({ flag: '0', flag_msg: 'wrongg' })
-    }
-}
 
 //------------------SignUp-------------------------------
 export const User_SignUp = async (req, res) => {
@@ -108,7 +82,16 @@ export const ReviewApplication = async (req, res) => {
           .input('ToDate',ToDate)
           .execute(sp)
       console.log(recordset);
-      return res.status(200).json({ Flag: recordset[0].Flag, Flag_msg: recordset[0].recordset, Details: recordset })
+
+      let filterData=recordset.map((item)=>{
+        return {
+            Name:item.Name,
+            Email:item.Email,
+            Mobile:item.Mobile,
+            Image:item.Image,
+        }
+    })
+       res.status(200).json({ Flag: recordset[0].Flag, Flag_msg: recordset[0].recordset, Details: filterData })
 
   } catch (error) {
       console.log('err is: ', error);
@@ -122,13 +105,16 @@ export const ReviewApplication = async (req, res) => {
 
 
 export const imgUploadAPI = async (req, res) => {
-  let { Mobile, Image, Image2, fileBase64String } = req.body;
-  let ourFilePath = await base64ToFile(Mobile, fileBase64String);
+  let { Mobile, Img_Base } = req.body;
+  var ourFilePath = await base64ToFile("Img", Mobile, Img_Base);
 
+console.log('ourFilePath',ourFilePath)
+console.log('Img_Base:',Img_Base)
+//console.log(req.body)
   try {
-      const { recordset } = await request()
+      const { recordset } = await db.request()
           .input('Flag', 'ImgUpload')
-          .input('Image', ourFilePath)
+          .input('Img_Base', ourFilePath)
           .input('Mobile', Mobile)
           .execute(sp);
 
@@ -145,7 +131,7 @@ export const imgUploadAPI = async (req, res) => {
 //-----------------------------------------------------------
 
 
-const base64ToFile = async (id, base64String) => {
+let base64ToFile = async (ImgName,id, base64String) => {
   try {
       let extension = "";
 
@@ -184,8 +170,8 @@ const base64ToFile = async (id, base64String) => {
           }
       }
 
-         const saveDirectory = "D:\\UPLOADS\\WasserStoff";
-      if (!f.existsSync(saveDirectory)) {
+         const saveDirectory = "D:\\UPLOADS\\WasserStoff\\Image\\Assignment";
+      if (!normalfs.existsSync(saveDirectory)) {
         normalfs.mkdirSync(saveDirectory);
       }
       const currentDateTime = new Date();
@@ -199,15 +185,19 @@ const base64ToFile = async (id, base64String) => {
 
       const formattedDateTime = `${day}${month}${year}${hours}${minutes}${seconds}`;
 
-      const outputFilePath = `${id}_${formattedDateTime}${extension}`;
+      const outputFilePath = `${ImgName}_${id}_${formattedDateTime}${extension}`;
 
-      const filePath = path.join(saveDirectory, outputFilePath);
+      const filePath = path.join(saveDirectory,"\\", outputFilePath);
       const buffer = Buffer.from(base64String, "base64");
 
-      await writeFile(filePath, buffer);
+      await fs.writeFile(filePath, buffer);
 
-      return { ourFilePath: filePath, outputFilePath };
+      //return { ourFilePath: filePath, outputFilePath };
+      //return outputFilePath
+      return filePath
   } catch (err) {
       console.log(err?.message);
   }
 };
+
+
